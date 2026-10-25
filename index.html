@@ -10,15 +10,14 @@ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:en
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#2a1220;--fg:#ffd9e4;--card:#3b1a2d;--yes:#ff5c8a;--no:#6c6c7c;--shadow:rgba(0,0,0,.4)}}
 :root[data-theme="dark"]{--bg:#2a1220;--fg:#ffd9e4;--card:#3b1a2d;--yes:#ff5c8a;--no:#6c6c7c;--shadow:rgba(0,0,0,.4)}
 html,body{height:100%;margin:0}
-body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.card{background:var(--card);border-radius:28px;padding:30px 22px;max-width:420px;width:calc(100% - 40px);text-align:center;box-shadow:0 12px 40px var(--shadow)}
-.emoji{font-size:72px;line-height:1.1;min-height:80px}
-h1{font-size:26px;margin:8px 0 14px;min-height:34px}
-.arena{position:relative;height:230px;margin:0 auto}
-button{position:absolute;font:inherit;font-size:20px;font-weight:600;border:0;border-radius:999px;padding:13px 32px;color:#fff;cursor:pointer;transition:left .25s ease,top .25s ease,transform .12s;touch-action:manipulation}
+body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;align-items:center;justify-content:center}
+.card{background:var(--card);border-radius:28px;padding:26px 20px;max-width:440px;width:calc(100% - 32px);text-align:center;box-shadow:0 12px 40px var(--shadow)}
+.emoji{font-size:68px;line-height:1.1;min-height:76px}
+h1{font-size:25px;margin:8px 0 12px;min-height:32px}
+.arena{position:relative;height:300px;margin:0 auto}
+button{position:absolute;font:inherit;font-weight:600;border:0;border-radius:999px;padding:11px 24px;color:#fff;cursor:pointer;touch-action:manipulation;transition:transform .12s}
 button:active{transform:scale(.94)}
-#yes{background:var(--yes)}#no{background:var(--no)}
-.dots{margin-top:12px;font-size:14px;min-height:20px;opacity:.8}
+.dots{margin-top:10px;font-size:14px;min-height:20px;opacity:.8}
 .final p{font-size:25px;line-height:1.4;margin:10px 0}
 .sign{font-weight:700;color:var(--yes)}
 .it{margin-top:20px;padding:14px 16px;border:2px dashed var(--yes);border-radius:18px;font-size:20px}
@@ -33,10 +32,7 @@ button:active{transform:scale(.94)}
   <div id="main">
     <div class="emoji pop" id="emoji">🥰</div>
     <h1 id="q">Áďo, miluješ mě?</h1>
-    <div class="arena" id="arena">
-      <button id="yes">Ano</button>
-      <button id="no">Ne</button>
-    </div>
+    <div class="arena" id="arena"></div>
     <div class="dots" id="dots"></div>
   </div>
   <div class="final hidden" id="final">
@@ -53,54 +49,53 @@ const questions=[
   "Ani trošičku pochybností?","Tak naposledy – opravdu opravdu?"
 ];
 const happy=["🥰","😊","🤔","😳","😍","🥹","🐻","💕","😘","🧸"];
-let step=0,busy=false,dodge={yes:0,no:0};
+const decoys=["Možná","Nevím","Asi ne","Hmm"];
+let step=0,busy=false;
 const $=id=>document.getElementById(id);
-const q=$("q"),emoji=$("emoji"),dots=$("dots"),arena=$("arena"),yes=$("yes"),no=$("no");
+const q=$("q"),emoji=$("emoji"),dots=$("dots"),arena=$("arena");
 
-function rand(max){return Math.floor(Math.random()*Math.max(max,0));}
-function place(){
+function overlap(a,b){return a.x<b.x+b.w+8&&b.x<a.x+a.w+8&&a.y<b.y+b.h+8&&b.y<a.y+a.h+8;}
+
+function build(){
+  arena.innerHTML="";
+  // čím dál víc tlačítek: od 4. otázky přibývají falešná tlačítka
+  const extra=step<3?0:step<6?1:step<8?2:3;
+  const list=[{t:"Ano",yes:true},{t:"Ne"}];
+  const pool=decoys.slice().sort(()=>Math.random()-.5);
+  for(let i=0;i<extra;i++)list.push({t:pool[i]});
+  // od 2. otázky je růžová barva občas pod jiným tlačítkem než Ano
+  const others=list.filter(i=>!i.yes);
+  const pink=(step>0&&Math.random()<0.5)?others[Math.floor(Math.random()*others.length)]:list[0];
+  const placed=[];
+  list.forEach(item=>{
+    const b=document.createElement("button");
+    b.textContent=item.t;
+    const fs=14+Math.floor(Math.random()*9);
+    b.style.fontSize=fs+"px";
+    b.style.background=item===pink?"var(--yes)":"var(--no)";
+    b.onclick=item.yes?onYes:onNo;
+    b.style.visibility="hidden";
+    arena.appendChild(b);
+    item.el=b;
+  });
   const W=arena.clientWidth,H=arena.clientHeight;
-  const a=yes.offsetWidth,ah=yes.offsetHeight,b=no.offsetWidth,bh=no.offsetHeight;
-  let ax,ay,bx,by,tries=0;
-  do{
-    ax=rand(W-a);ay=rand(H-ah);bx=rand(W-b);by=rand(H-bh);tries++;
-  }while(tries<80&&ax<bx+b+10&&bx<ax+a+10&&ay<by+bh+10&&by<ay+ah+10);
-  yes.style.left=ax+"px";yes.style.top=ay+"px";
-  no.style.left=bx+"px";no.style.top=by+"px";
-}
-function moveOne(btn){
-  const W=arena.clientWidth,H=arena.clientHeight;
-  const other=btn===yes?no:yes;
-  const ox=parseFloat(other.style.left),oy=parseFloat(other.style.top);
-  let x,y,t=0;
-  do{x=rand(W-btn.offsetWidth);y=rand(H-btn.offsetHeight);t++;}
-  while(t<80&&x<ox+other.offsetWidth+10&&ox<x+btn.offsetWidth+10&&y<oy+other.offsetHeight+10&&oy<y+btn.offsetHeight+10);
-  btn.style.left=x+"px";btn.style.top=y+"px";
-}
-function resetDodges(){
-  dodge.yes=step<3?0:step<7?1:2;   // Ano se čím dál víc schovává
-  dodge.no=2;                       // Ne ucukne vždycky dvakrát
-  const s=Math.max(.7,1-step*.03);
-  yes.style.fontSize=(20*s)+"px";
+  list.sort(()=>Math.random()-.5).forEach(item=>{
+    const b=item.el,w=b.offsetWidth,h=b.offsetHeight;
+    let r,t=0;
+    do{r={x:Math.random()*(W-w),y:Math.random()*(H-h),w,h};t++;}
+    while(t<300&&placed.some(p=>overlap(r,p)));
+    placed.push(r);
+    b.style.left=r.x+"px";b.style.top=r.y+"px";b.style.visibility="visible";
+  });
 }
 function render(){
   q.textContent=questions[step];
   emoji.textContent=happy[step];
   emoji.classList.remove("pop");void emoji.offsetWidth;emoji.classList.add("pop");
   dots.textContent=step?"❤️".repeat(step):"";
-  resetDodges();
-  requestAnimationFrame(place);
+  build();
 }
-function tryDodge(btn,key,e){
-  if(busy)return false;
-  if(dodge[key]>0){dodge[key]--;if(e&&e.cancelable)e.preventDefault();moveOne(btn);return true;}
-  return false;
-}
-[[yes,"yes"],[no,"no"]].forEach(([btn,key])=>{
-  btn.addEventListener("pointerenter",e=>{if(e.pointerType==="mouse")tryDodge(btn,key,e);});
-  btn.addEventListener("pointerdown",e=>{tryDodge(btn,key,e);});
-});
-yes.addEventListener("click",()=>{
+function onYes(){
   if(busy)return;
   step++;
   if(step>=questions.length){
@@ -109,17 +104,18 @@ yes.addEventListener("click",()=>{
     return;
   }
   render();
-});
-no.addEventListener("click",()=>{
+}
+function onNo(){
   if(busy)return;
   busy=true;
+  arena.innerHTML="";
   emoji.textContent="😢";
   emoji.classList.remove("pop");void emoji.offsetWidth;emoji.classList.add("pop");
   q.textContent="Tak to je smutné…";
   dots.textContent="";
   setTimeout(()=>{step=0;busy=false;render();},1600);
-});
-window.addEventListener("resize",place);
+}
+window.addEventListener("resize",build);
 render();
 </script>
 </body>
