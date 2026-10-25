@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Áďo, miluješ mě?</title>
+<style>
+:root{--bg:#ffe9ef;--fg:#5a1a2e;--card:#fff;--yes:#e63e6d;--no:#8a8a99;--shadow:rgba(230,62,109,.25);
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#2a1220;--fg:#ffd9e4;--card:#3b1a2d;--yes:#ff5c8a;--no:#6c6c7c;--shadow:rgba(0,0,0,.4)}}
+:root[data-theme="dark"]{--bg:#2a1220;--fg:#ffd9e4;--card:#3b1a2d;--yes:#ff5c8a;--no:#6c6c7c;--shadow:rgba(0,0,0,.4)}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;align-items:center;justify-content:center}
+.card{background:var(--card);border-radius:28px;padding:36px 28px;max-width:420px;width:calc(100% - 40px);text-align:center;box-shadow:0 12px 40px var(--shadow)}
+.emoji{font-size:84px;line-height:1.1;min-height:94px}
+h1{font-size:28px;margin:12px 0 24px}
+.btns{display:flex;gap:14px;justify-content:center}
+button{font:inherit;font-size:20px;font-weight:600;border:0;border-radius:999px;padding:14px 34px;color:#fff;cursor:pointer;transition:transform .12s}
+button:active{transform:scale(.94)}
+#yes{background:var(--yes)}#no{background:var(--no)}
+.dots{margin-top:22px;font-size:14px;opacity:.7}
+.final p{font-size:26px;line-height:1.4;margin:10px 0}
+.sign{font-weight:700;color:var(--yes)}
+.hidden{display:none}
+@keyframes pop{0%{transform:scale(.6)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+.pop{animation:pop .35s}
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div id="main">
+    <div class="emoji pop" id="emoji">🥰</div>
+    <h1 id="q">Áďo, miluješ mě?</h1>
+    <div class="btns">
+      <button id="yes">Ano</button>
+      <button id="no">Ne</button>
+    </div>
+    <div class="dots" id="dots"></div>
+  </div>
+  <div class="final hidden" id="final">
+    <div class="emoji pop">🧸❤️</div>
+    <p>Já tě taky mám strašně rád,</p>
+    <p class="sign">Tvůj Medvídek Fíla</p>
+  </div>
+</div>
+<script>
+const questions=[
+  "Áďo, miluješ mě?",
+  "Opravdu?",
+  "Myslíš to vážně?",
+  "Fakt fakt?",
+  "Určitě určitě?",
+  "A nelžeš mi?",
+  "Přísaháš na medvědí tlapku?",
+  "Úplně celým srdíčkem?",
+  "Ani trošičku pochybností?",
+  "Tak naposledy – opravdu opravdu?"
+];
+const happy=["🥰","😊","🤔","😳","😍","🥹","🐻","💕","😘","🧸"];
+let step=0,busy=false;
+const q=document.getElementById('q'),emoji=document.getElementById('emoji'),dots=document.getElementById('dots');
+function render(){
+  q.textContent=questions[step];
+  emoji.textContent=happy[step];
+  emoji.classList.remove('pop');void emoji.offsetWidth;emoji.classList.add('pop');
+  dots.textContent=step?("❤️".repeat(step)):"";
+}
+document.getElementById('yes').onclick=()=>{
+  if(busy)return;
+  step++;
+  if(step>=questions.length){
+    document.getElementById('main').classList.add('hidden');
+    document.getElementById('final').classList.remove('hidden');
+    return;
+  }
+  render();
+};
+document.getElementById('no').onclick=()=>{
+  if(busy)return;
+  busy=true;
+  emoji.textContent="😢";
+  emoji.classList.remove('pop');void emoji.offsetWidth;emoji.classList.add('pop');
+  q.textContent="Tak to je smutné…";
+  dots.textContent="";
+  setTimeout(()=>{step=0;render();busy=false;},1600);
+};
+</script>
+</body>
+</html>
