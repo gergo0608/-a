@@ -10,28 +10,30 @@ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:en
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#2a1220;--fg:#ffd9e4;--card:#3b1a2d;--yes:#ff5c8a;--no:#6c6c7c;--shadow:rgba(0,0,0,.4)}}
 :root[data-theme="dark"]{--bg:#2a1220;--fg:#ffd9e4;--card:#3b1a2d;--yes:#ff5c8a;--no:#6c6c7c;--shadow:rgba(0,0,0,.4)}
 html,body{height:100%;margin:0}
-body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;align-items:center;justify-content:center}
-.card{background:var(--card);border-radius:28px;padding:36px 28px;max-width:420px;width:calc(100% - 40px);text-align:center;box-shadow:0 12px 40px var(--shadow)}
-.emoji{font-size:84px;line-height:1.1;min-height:94px}
-h1{font-size:28px;margin:12px 0 24px}
-.btns{display:flex;gap:14px;justify-content:center}
-button{font:inherit;font-size:20px;font-weight:600;border:0;border-radius:999px;padding:14px 34px;color:#fff;cursor:pointer;transition:transform .12s}
+body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.card{background:var(--card);border-radius:28px;padding:30px 22px;max-width:420px;width:calc(100% - 40px);text-align:center;box-shadow:0 12px 40px var(--shadow)}
+.emoji{font-size:72px;line-height:1.1;min-height:80px}
+h1{font-size:26px;margin:8px 0 14px;min-height:34px}
+.arena{position:relative;height:230px;margin:0 auto}
+button{position:absolute;font:inherit;font-size:20px;font-weight:600;border:0;border-radius:999px;padding:13px 32px;color:#fff;cursor:pointer;transition:left .25s ease,top .25s ease,transform .12s;touch-action:manipulation}
 button:active{transform:scale(.94)}
 #yes{background:var(--yes)}#no{background:var(--no)}
-.dots{margin-top:22px;font-size:14px;opacity:.7}
-.final p{font-size:26px;line-height:1.4;margin:10px 0}
+.dots{margin-top:12px;font-size:14px;min-height:20px;opacity:.8}
+.final p{font-size:25px;line-height:1.4;margin:10px 0}
 .sign{font-weight:700;color:var(--yes)}
+.it{margin-top:20px;padding:14px 16px;border:2px dashed var(--yes);border-radius:18px;font-size:20px}
+.it b{font-size:30px;letter-spacing:4px;color:var(--yes)}
 .hidden{display:none}
 @keyframes pop{0%{transform:scale(.6)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
 .pop{animation:pop .35s}
 </style>
 </head>
 <body>
-<div class="card" id="card">
+<div class="card">
   <div id="main">
     <div class="emoji pop" id="emoji">🥰</div>
     <h1 id="q">Áďo, miluješ mě?</h1>
-    <div class="btns">
+    <div class="arena" id="arena">
       <button id="yes">Ano</button>
       <button id="no">Ne</button>
     </div>
@@ -41,49 +43,84 @@ button:active{transform:scale(.94)}
     <div class="emoji pop">🧸❤️</div>
     <p>Já tě taky mám strašně rád,</p>
     <p class="sign">Tvůj Medvídek Fíla</p>
+    <div class="it">A teď mi napiš slovo<br><b>IT</b> 💌</div>
   </div>
 </div>
 <script>
 const questions=[
-  "Áďo, miluješ mě?",
-  "Opravdu?",
-  "Myslíš to vážně?",
-  "Fakt fakt?",
-  "Určitě určitě?",
-  "A nelžeš mi?",
-  "Přísaháš na medvědí tlapku?",
-  "Úplně celým srdíčkem?",
-  "Ani trošičku pochybností?",
-  "Tak naposledy – opravdu opravdu?"
+  "Áďo, miluješ mě?","Opravdu?","Myslíš to vážně?","Fakt fakt?","Určitě určitě?",
+  "A nelžeš mi?","Přísaháš na medvědí tlapku?","Úplně celým srdíčkem?",
+  "Ani trošičku pochybností?","Tak naposledy – opravdu opravdu?"
 ];
 const happy=["🥰","😊","🤔","😳","😍","🥹","🐻","💕","😘","🧸"];
-let step=0,busy=false;
-const q=document.getElementById('q'),emoji=document.getElementById('emoji'),dots=document.getElementById('dots');
+let step=0,busy=false,dodge={yes:0,no:0};
+const $=id=>document.getElementById(id);
+const q=$("q"),emoji=$("emoji"),dots=$("dots"),arena=$("arena"),yes=$("yes"),no=$("no");
+
+function rand(max){return Math.floor(Math.random()*Math.max(max,0));}
+function place(){
+  const W=arena.clientWidth,H=arena.clientHeight;
+  const a=yes.offsetWidth,ah=yes.offsetHeight,b=no.offsetWidth,bh=no.offsetHeight;
+  let ax,ay,bx,by,tries=0;
+  do{
+    ax=rand(W-a);ay=rand(H-ah);bx=rand(W-b);by=rand(H-bh);tries++;
+  }while(tries<80&&ax<bx+b+10&&bx<ax+a+10&&ay<by+bh+10&&by<ay+ah+10);
+  yes.style.left=ax+"px";yes.style.top=ay+"px";
+  no.style.left=bx+"px";no.style.top=by+"px";
+}
+function moveOne(btn){
+  const W=arena.clientWidth,H=arena.clientHeight;
+  const other=btn===yes?no:yes;
+  const ox=parseFloat(other.style.left),oy=parseFloat(other.style.top);
+  let x,y,t=0;
+  do{x=rand(W-btn.offsetWidth);y=rand(H-btn.offsetHeight);t++;}
+  while(t<80&&x<ox+other.offsetWidth+10&&ox<x+btn.offsetWidth+10&&y<oy+other.offsetHeight+10&&oy<y+btn.offsetHeight+10);
+  btn.style.left=x+"px";btn.style.top=y+"px";
+}
+function resetDodges(){
+  dodge.yes=step<3?0:step<7?1:2;   // Ano se čím dál víc schovává
+  dodge.no=2;                       // Ne ucukne vždycky dvakrát
+  const s=Math.max(.7,1-step*.03);
+  yes.style.fontSize=(20*s)+"px";
+}
 function render(){
   q.textContent=questions[step];
   emoji.textContent=happy[step];
-  emoji.classList.remove('pop');void emoji.offsetWidth;emoji.classList.add('pop');
-  dots.textContent=step?("❤️".repeat(step)):"";
+  emoji.classList.remove("pop");void emoji.offsetWidth;emoji.classList.add("pop");
+  dots.textContent=step?"❤️".repeat(step):"";
+  resetDodges();
+  requestAnimationFrame(place);
 }
-document.getElementById('yes').onclick=()=>{
+function tryDodge(btn,key,e){
+  if(busy)return false;
+  if(dodge[key]>0){dodge[key]--;if(e&&e.cancelable)e.preventDefault();moveOne(btn);return true;}
+  return false;
+}
+[[yes,"yes"],[no,"no"]].forEach(([btn,key])=>{
+  btn.addEventListener("pointerenter",e=>{if(e.pointerType==="mouse")tryDodge(btn,key,e);});
+  btn.addEventListener("pointerdown",e=>{tryDodge(btn,key,e);});
+});
+yes.addEventListener("click",()=>{
   if(busy)return;
   step++;
   if(step>=questions.length){
-    document.getElementById('main').classList.add('hidden');
-    document.getElementById('final').classList.remove('hidden');
+    $("main").classList.add("hidden");
+    $("final").classList.remove("hidden");
     return;
   }
   render();
-};
-document.getElementById('no').onclick=()=>{
+});
+no.addEventListener("click",()=>{
   if(busy)return;
   busy=true;
   emoji.textContent="😢";
-  emoji.classList.remove('pop');void emoji.offsetWidth;emoji.classList.add('pop');
+  emoji.classList.remove("pop");void emoji.offsetWidth;emoji.classList.add("pop");
   q.textContent="Tak to je smutné…";
   dots.textContent="";
-  setTimeout(()=>{step=0;render();busy=false;},1600);
-};
+  setTimeout(()=>{step=0;busy=false;render();},1600);
+});
+window.addEventListener("resize",place);
+render();
 </script>
 </body>
 </html>
